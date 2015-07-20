@@ -4,6 +4,7 @@
     @author: Josh Snider.'''
 import datetime
 import re
+import string
 
 ##
 class Product(object):
@@ -35,10 +36,27 @@ class Product(object):
 
 ##
 class Review(object):
+
+  #blacklist = {'the', 'and', 'but', 'you', 'for', 'had', 'all','this',
+  #  'not', 'was', 'that', 'her', 'have', 'with',}
+  blacklist = {'this', 'that', 'with', 'were', 'will'}
   
-  def __init__(self, time, text):
+  def __init__(self, time, text, score):
     self.time = datetime.datetime.fromtimestamp(float(time))
     self.text = text
+    self.score = int(float(score))
+
+  def __str__(self):
+    return str(self.text.replace('\t',' ')) + '\t' + str(self.score)#str(self.get_words())
+
+  def get_words(self):
+    text = self.text.lower()
+    for punc in string.punctuation:
+      text = text.replace(punc, ' ')
+    words = {word for word in text.split() if len(word) > 3}
+    words = {word for word in words if word not in Review.blacklist}
+    wordcount = {word:text.count(word) for word in words}
+    return wordcount
 
 ##
 
@@ -73,7 +91,8 @@ def get_reviews(data):
   productTitle = 'product/title: (.*?)\n'
   reviewtime = 'review/time: (.*?)\n'
   reviewtext = 'review/text: (.*?)\n'
-  review = (field + productTitle + field * 5 +
+  reviewscore = 'review/score: (.*?)\n'
+  review = (field + productTitle + field * 4 + reviewscore +
     reviewtime + field + reviewtext + '\n')
   for match in re.finditer(review, data):
     yield match
@@ -92,21 +111,39 @@ def filter_products_by_title(prods, whitelist):
     if key not in whitelist:
       del prods[key]
 
+def arfify(product):
+  '''wordcounts = [review.get_words() for review in product.reviews]
+  aggregate = {}
+  for wordcount in wordcounts:
+    for word in wordcount:
+      if word in aggregate:
+        aggregate[word] += wordcount[word]
+      else:
+        aggregate[word] = wordcount[word]
+  lst = [(aggregate[key], key) for key in aggregate]
+  lst.sort()
+  lst = [v for (k, v) in lst]
+  lst = list(reversed(lst))
+  lst = lst[:100]
+  print(lst)'''
+  for review in product.reviews:
+    print(review)
+
 def main():
   products = dict()
   with open('Kindle_Store.txt') as f:
     data = ''.join(f.readlines())
     for match in get_reviews(data):
       title = match.group(1)
-      prod_review = Review(match.group(2), match.group(3))
+      prod_review = Review(match.group(3), match.group(4), match.group(2))
       if title not in products:
         products[title] = Product(title)
       products[title].add_review(prod_review)
     filter_products(products,timestamp_filter(start=JAN01_2011))
     filter_products_by_reviews(products, 200)
-    vals = (products_by_num_reviews(products))
-    for p in vals:
-      print(p)
+    pride_and_prej = products[
+      'Pride and Prejudice, Annotated (Enriched Classics)']
+    arfify(pride_and_prej)
 
 if __name__ == "__main__":
   main()
