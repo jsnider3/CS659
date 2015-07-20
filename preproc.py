@@ -47,7 +47,10 @@ class Review(object):
     self.score = int(float(score))
 
   def __str__(self):
-    return str(self.text.replace('\t',' ')) + '\t' + str(self.score)#str(self.get_words())
+    valence = 1
+    if self.score < 3:
+      valence = -1
+    return str(self.text.replace('\t',' ')) + '\t' + str(valence)
 
   def get_words(self):
     text = self.text.lower()
